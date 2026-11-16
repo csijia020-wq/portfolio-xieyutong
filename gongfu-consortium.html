@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共富联合体赋能机制统计调研与模式识别</title>
+<script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    line-height: 1.6;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: #1a3c2e;
+    color: white;
+    padding: 72px 0 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(74, 222, 128, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74, 222, 128, 0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .hero > .container { position: relative; z-index: 1; }
+  .hero-tag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #86efac;
+    border: 1px solid rgba(134, 239, 172, 0.4);
+    padding: 4px 14px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+  .hero-sub {
+    font-size: 15px;
+    color: #94a3b8;
+    max-width: 620px;
+    margin-bottom: 44px;
+    line-height: 1.7;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(134, 239, 172, 0.15);
+    border: 1px solid rgba(134, 239, 172, 0.15);
+  }
+  .stat-card {
+    background: #1a3c2e;
+    padding: 20px 16px;
+  }
+  .stat-num {
+    font-size: 30px;
+    font-weight: 800;
+    color: #86efac;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+
+  /* ===== Section ===== */
+  section { padding: 56px 0; }
+  section:nth-child(even) { background: white; }
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #16a34a;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a3c2e;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 32px;
+    max-width: 640px;
+  }
+  .bg-text {
+    font-size: 15px;
+    color: #334155;
+    max-width: 720px;
+    line-height: 1.8;
+  }
+
+  /* Data Sources */
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  .source-card {
+    padding: 24px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .source-card:last-child { border-right: none; }
+  .source-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a3c2e;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #16a34a;
+    display: inline-block;
+  }
+  .source-num {
+    font-size: 26px;
+    font-weight: 800;
+    color: #16a34a;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .source-desc {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+  }
+
+  /* Method Chain */
+  .method-chain {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: 32px;
+  }
+  .method-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .method-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 28px;
+    width: 8px;
+    height: 1px;
+    background: #cbd5e1;
+  }
+  .method-num {
+    width: 56px;
+    height: 56px;
+    line-height: 56px;
+    background: #1a3c2e;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+    margin: 0 auto 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .method-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a3c2e;
+    margin-bottom: 4px;
+  }
+  .method-tool {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  /* Chart */
+  .chart-box {
+    background: white;
+    padding: 28px;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  #featureChart { width: 100%; height: 360px; }
+
+  /* Model Performance */
+  .perf-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  .perf-card {
+    padding: 28px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .perf-card:last-child { border-right: none; }
+  .perf-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a3c2e;
+    margin-bottom: 12px;
+  }
+  .perf-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: #16a34a;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .perf-label {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* Three Types */
+  .types-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  .type-card {
+    padding: 24px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .type-card:last-child { border-right: none; }
+  .type-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+    background: #dcfce7;
+    color: #166534;
+  }
+  .type-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a3c2e;
+    margin-bottom: 10px;
+  }
+  .type-desc {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.7;
+  }
+
+  /* Tech Tags */
+  .tech-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .tech-tag {
+    font-size: 12px;
+    padding: 5px 14px;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    font-weight: 500;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 0;
+    font-size: 12px;
+    color: #64748b;
+    background: #1a3c2e;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 26px; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .source-grid { grid-template-columns: 1fr; }
+    .source-card { border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .source-card:last-child { border-bottom: none; }
+    .types-grid { grid-template-columns: 1fr; }
+    .type-card { border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .type-card:last-child { border-bottom: none; }
+    .perf-grid { grid-template-columns: 1fr; }
+    .perf-card { border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .perf-card:last-child { border-bottom: none; }
+    .method-chain { flex-direction: column; gap: 24px; }
+    .method-step:not(:last-child)::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-tag">STATISTICAL RESEARCH · NLP · MULTI-SOURCE DATA · POLICY ANALYTICS</div>
+    <h1>共富联合体赋能机制<br>统计调研与模式识别</h1>
+    <p class="hero-sub">基于浙江省四市22个联合体71村的一手调研，融合问卷、访谈与网络舆情多源数据，运用NLP文本挖掘与统计建模方法，识别共富联合体的差异化赋能路径与典型发展模式。</p>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-num">827</div>
+        <div class="stat-label">村民有效问卷</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">680</div>
+        <div class="stat-label">工作人员有效问卷</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">22,839</div>
+        <div class="stat-label">网络舆情评论</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">0.956</div>
+        <div class="stat-label">XGBoost 测试集 R²</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 研究背景 -->
+<section>
+  <div class="container">
+    <div class="section-label">BACKGROUND</div>
+    <h2 class="section-title">研究背景</h2>
+    <p class="section-desc">Why this research matters</p>
+    <p class="bg-text">
+      浙江省共富联合体模式在乡村振兴中发挥重要作用，但不同地区联合体的赋能机制差异大、效果难量化，政策制定缺乏系统的数据支撑。项目选取杭州、宁波、衢州、绍兴四市共22个共富联合体71村作为调研对象，通过多源数据融合与统计建模，系统识别共富联合体的赋能机制与差异化发展路径。
+    </p>
+  </div>
+</section>
+
+<!-- 数据来源 -->
+<section>
+  <div class="container">
+    <div class="section-label">DATA INTEGRATION</div>
+    <h2 class="section-title">多源数据融合</h2>
+    <p class="section-desc">三角验证提升结论可靠性 — 从一手问卷到网络舆情的立体化数据采集</p>
+    <div class="source-grid">
+      <div class="source-card">
+        <h4>一手问卷调研</h4>
+        <div class="source-num">1,507 份</div>
+        <div class="source-desc">村民问卷827份 + 工作人员问卷680份，有效率92.71%，覆盖四市22个联合体71村</div>
+      </div>
+      <div class="source-card">
+        <h4>深度访谈</h4>
+        <div class="source-num">多主体</div>
+        <div class="source-desc">半结构化访谈，覆盖村民、联合体工作人员、党政部门干部及村CEO等核心主体</div>
+      </div>
+      <div class="source-card">
+        <h4>网络舆情爬虫</h4>
+        <div class="source-num">22,839 条</div>
+        <div class="source-desc">Scrapy-Playwright框架爬取抖音、B站、微博、知乎等平台共富联合体相关评论</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 方法链 -->
+<section>
+  <div class="container">
+    <div class="section-label">METHODOLOGY</div>
+    <h2 class="section-title">技术方法链</h2>
+    <p class="section-desc">从数据采集到政策建议的完整链路</p>
+    <div class="method-chain">
+      <div class="method-step">
+        <div class="method-num">1</div>
+        <div class="method-name">文本挖掘</div>
+        <div class="method-tool">BERT-CRF · Semantic Network</div>
+      </div>
+      <div class="method-step">
+        <div class="method-num">2</div>
+        <div class="method-name">预测建模</div>
+        <div class="method-tool">XGBoost回归</div>
+      </div>
+      <div class="method-step">
+        <div class="method-num">3</div>
+        <div class="method-name">因果识别</div>
+        <div class="method-tool">SEM结构方程模型</div>
+      </div>
+      <div class="method-step">
+        <div class="method-num">4</div>
+        <div class="method-name">综合评价</div>
+        <div class="method-tool">CRITIC-TOPSIS</div>
+      </div>
+      <div class="method-step">
+        <div class="method-num">5</div>
+        <div class="method-name">模式聚类</div>
+        <div class="method-tool">K-means++</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 特征重要性 -->
+<section>
+  <div class="container">
+    <div class="section-label">KEY FINDING</div>
+    <h2 class="section-title">XGBoost 特征重要性</h2>
+    <p class="section-desc">村民支持意愿的关键影响因子 — 民生惠富贡献度超过50%</p>
+    <div class="chart-box">
+      <div id="featureChart"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 模型性能 -->
+<section>
+  <div class="container">
+    <div class="section-label">MODEL PERFORMANCE</div>
+    <h2 class="section-title">模型性能验证</h2>
+    <p class="section-desc">预测精度与泛化能力的双重验证</p>
+    <div class="perf-grid">
+      <div class="perf-card">
+        <div class="perf-name">BERT-CRF 情感分类</div>
+        <div class="perf-value">82.71%</div>
+        <div class="perf-label">正面评论 F1-score<br>优于Bi-LSTM、RNN基线模型</div>
+      </div>
+      <div class="perf-card">
+        <div class="perf-name">XGBoost 支持意愿预测</div>
+        <div class="perf-value">R² = 0.956</div>
+        <div class="perf-label">测试集决定系数<br>拟合效果优良，泛化能力强</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 三类模式 -->
+<section>
+  <div class="container">
+    <div class="section-label">CLUSTERING RESULT</div>
+    <h2 class="section-title">三类典型发展模式</h2>
+    <p class="section-desc">K-means++ 聚类识别出共富联合体的差异化发展路径</p>
+    <div class="types-grid">
+      <div class="type-card">
+        <div class="type-badge">聚类一</div>
+        <div class="type-name">垂直协同型</div>
+        <div class="type-desc">
+          以产业链纵向合作为核心特征，各村分别专注于产业链不同环节（农业种植-产品加工-物流销售），形成紧密的上下游配套协作关系，建立稳定的原材料供应与利益分配机制。
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-badge">聚类二</div>
+        <div class="type-name">水平规模型</div>
+        <div class="type-desc">
+          立足于产业环节的横向联合，邻村之间基于相似的资源禀赋与产业基础，共同发展同类型或高度同质化的产业，通过抱团发展扩大产业规模、降低成本。
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-badge">聚类三</div>
+        <div class="type-name">功能错位型</div>
+        <div class="type-desc">
+          各村各亮特色牌，通过党建牵头、错位发展来避免同质化竞争，打造独具特色的村庄品牌，在功能分工上形成互补协同的关系。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 技术栈 -->
+<section>
+  <div class="container">
+    <div class="section-label">TECH STACK</div>
+    <h2 class="section-title">技术栈</h2>
+    <div class="tech-tags">
+      <span class="tech-tag">Python</span>
+      <span class="tech-tag">Scrapy-Playwright</span>
+      <span class="tech-tag">BERT-CRF</span>
+      <span class="tech-tag">XGBoost</span>
+      <span class="tech-tag">SEM</span>
+      <span class="tech-tag">CRITIC-TOPSIS</span>
+      <span class="tech-tag">K-means++</span>
+      <span class="tech-tag">Kruskal-Wallis检验</span>
+      <span class="tech-tag">因子分析</span>
+      <span class="tech-tag">分组回归</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    谢宇彤 · 数据分析作品集 · 基于浙江省四市共富联合体统计调研数据完成
+  </div>
+</footer>
+
+<script>
+  var chart = echarts.init(document.getElementById('featureChart'));
+  var option = {
+    title: { text: 'XGBoost 特征重要性排序', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+    tooltip: { trigger: 'axis', formatter: '{b}: {c}%' },
+    grid: { left: '3%', right: '8%', bottom: '3%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      max: 55,
+      axisLabel: { formatter: '{value}%' }
+    },
+    yAxis: {
+      type: 'category',
+      data: ['受教育程度', '月收入水平', '是否知晓共富联合体', '是否正在参与建设', '科教赋能', '文韵润富', '经济兴富', '民生惠富'],
+      axisLabel: { fontSize: 12 }
+    },
+    series: [{
+      type: 'bar',
+      data: [5.0, 4.1, 2.6, 2.0, 7.8, 11.2, 16.4, 50.8],
+      itemStyle: { color: '#16a34a' },
+      label: { show: true, position: 'right', formatter: '{c}%', fontSize: 11 }
+    }]
+  };
+  chart.setOption(option);
+  window.addEventListener('resize', function() { chart.resize(); });
+</script>
+
+</body>
+</html>
