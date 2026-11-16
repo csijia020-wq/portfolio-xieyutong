@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTA订单取消风险预测与精准运营策略</title>
+<script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: #1e293b;
+    line-height: 1.6;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: #0f2942;
+    color: white;
+    padding: 72px 0 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(59, 130, 246, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .hero > .container { position: relative; z-index: 1; }
+  .hero-tag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.4);
+    padding: 4px 14px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+  .hero-sub {
+    font-size: 15px;
+    color: #94a3b8;
+    max-width: 620px;
+    margin-bottom: 44px;
+    line-height: 1.7;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(96, 165, 250, 0.15);
+    border: 1px solid rgba(96, 165, 250, 0.15);
+  }
+  .stat-card {
+    background: #0f2942;
+    padding: 20px 16px;
+  }
+  .stat-num {
+    font-size: 30px;
+    font-weight: 800;
+    color: #60a5fa;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+
+  /* ===== Section ===== */
+  section { padding: 56px 0; }
+  section:nth-child(even) { background: white; }
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #3b82f6;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f2942;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 32px;
+    max-width: 640px;
+  }
+
+  /* Background */
+  .bg-text {
+    font-size: 15px;
+    color: #334155;
+    max-width: 720px;
+    line-height: 1.8;
+  }
+
+  /* CRISP-DM Flow */
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: 32px;
+  }
+  .flow-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .flow-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 28px;
+    width: 8px;
+    height: 1px;
+    background: #cbd5e1;
+  }
+  .flow-num {
+    width: 56px;
+    height: 56px;
+    line-height: 56px;
+    background: #0f2942;
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+    margin: 0 auto 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .flow-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f2942;
+    margin-bottom: 4px;
+  }
+  .flow-desc {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  /* Feature Cards */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  .feature-card {
+    padding: 24px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .feature-card:last-child { border-right: none; }
+  .feature-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f2942;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #3b82f6;
+    display: inline-block;
+  }
+  .feature-card ul { list-style: none; }
+  .feature-card li {
+    font-size: 13px;
+    color: #475569;
+    padding: 6px 0;
+    border-bottom: 1px dotted #e2e8f0;
+  }
+  .feature-card li:last-child { border-bottom: none; }
+
+  /* Chart */
+  .chart-box {
+    background: white;
+    padding: 28px;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  #modelChart { width: 100%; height: 380px; }
+
+  /* Result Big Numbers */
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  .result-item {
+    text-align: center;
+    padding: 32px 24px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .result-item:last-child { border-right: none; }
+  .result-num {
+    font-size: 42px;
+    font-weight: 800;
+    color: #1e40af;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-label {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+
+  /* ===== Strategy Section ===== */
+  .seg-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 32px;
+    border: 1px solid #e2e8f0;
+  }
+  .seg-card {
+    padding: 24px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .seg-card:last-child { border-right: none; }
+  .seg-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  .seg-high .seg-badge { background: #fef2f2; color: #dc2626; }
+  .seg-mid .seg-badge { background: #fffbeb; color: #d97706; }
+  .seg-low .seg-badge { background: #f0fdf4; color: #16a34a; }
+
+  .seg-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f2942;
+    margin-bottom: 4px;
+  }
+  .seg-threshold {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .seg-row {
+    margin-bottom: 14px;
+  }
+  .seg-row-label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .seg-row-content {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+  }
+
+  /* A/B Experiment */
+  .ab-section {
+    margin-top: 40px;
+    padding: 28px;
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+  }
+  .ab-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f2942;
+    margin-bottom: 20px;
+  }
+  .ab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .ab-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .ab-item-label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .ab-item-value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 500;
+  }
+
+  /* Tech Tags */
+  .tech-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .tech-tag {
+    font-size: 12px;
+    padding: 5px 14px;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    font-weight: 500;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 0;
+    font-size: 12px;
+    color: #64748b;
+    background: #0f2942;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 26px; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .feature-grid { grid-template-columns: 1fr; }
+    .feature-card { border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .feature-card:last-child { border-bottom: none; }
+    .result-grid { grid-template-columns: 1fr; }
+    .result-item { border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .result-item:last-child { border-bottom: none; }
+    .seg-grid { grid-template-columns: 1fr; }
+    .seg-card { border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .seg-card:last-child { border-bottom: none; }
+    .ab-grid { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; gap: 24px; }
+    .flow-step:not(:last-child)::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-tag">DATA SCIENCE · MACHINE LEARNING · USER SEGMENTATION</div>
+    <h1>OTA平台用户订单取消<br>风险预测与精准运营策略</h1>
+    <p class="hero-sub">基于CRISP-DM方法论，构建酒店订单取消风险预测模型，输出用户分层与"无忧退"精准推荐策略，为旅游平台优化退改服务提供量化决策依据。</p>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-num">11.94万</div>
+        <div class="stat-label">订单数据量</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">0.8603</div>
+        <div class="stat-label">测试集AUC</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">1.8×</div>
+        <div class="stat-label">Top 10% Lift</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">+5.2%</div>
+        <div class="stat-label">预计净收益提升</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 业务背景 -->
+<section>
+  <div class="container">
+    <div class="section-label">BACKGROUND</div>
+    <h2 class="section-title">业务背景</h2>
+    <p class="section-desc">Why this project matters</p>
+    <p class="bg-text">
+      OTA平台订单取消率居高不下，不仅造成库存浪费与收益损失，还影响用户体验与平台口碑。一个被取消的订单意味着为该订单预留的酒店客房或机票座位被临时释放，这些库存可能因临近消费日期而难以再次售出，导致资源虚耗。同时，高频取消还会损害平台与供应商之间的合作协议。如何精准识别高取消风险用户，并针对性设计退改政策推荐，是提升平台运营效率的关键问题。
+    </p>
+  </div>
+</section>
+
+<!-- CRISP-DM 流程 -->
+<section>
+  <div class="container">
+    <div class="section-label">METHODOLOGY</div>
+    <h2 class="section-title">CRISP-DM 全流程方法论</h2>
+    <p class="section-desc">Cross-Industry Standard Process for Data Mining — 从商业目标到部署上线的完整闭环</p>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-name">商业理解</div>
+        <div class="flow-desc">定义业务目标与成功指标</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-name">数据理解</div>
+        <div class="flow-desc">数据收集与质量评估</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-name">数据准备</div>
+        <div class="flow-desc">清洗与特征工程</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-name">建模</div>
+        <div class="flow-desc">多模型对比与Stacking集成</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-name">评价</div>
+        <div class="flow-desc">AUC / F1 / Lift验证</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-name">部署</div>
+        <div class="flow-desc">A/B实验与上线建议</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 特征工程 -->
+<section>
+  <div class="container">
+    <div class="section-label">FEATURE ENGINEERING</div>
+    <h2 class="section-title">三大维度特征体系</h2>
+    <p class="section-desc">从原始订单数据到高维特征空间 — 基于业务领域知识构建的特征工程框架</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>时间维度</h4>
+        <ul>
+          <li>提前预订窗口（预订日距出行日天数）</li>
+          <li>是否节假日 / 周末出行</li>
+          <li>出发时段是否为红眼航班</li>
+          <li>季节性波动特征</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h4>空间环境维度</h4>
+        <ul>
+          <li>异地出行距离（常住地与目的地球面距离）</li>
+          <li>目的地气象干扰指数（降雨 / 极端天气概率）</li>
+          <li>所属供应商与用户评分</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h4>用户行为维度</h4>
+        <ul>
+          <li>相对价格偏离度 RPD（订单价 vs 用户历史均价）</li>
+          <li>预订前决策犹豫指数 PDHI（会话内退改说明查阅频次加权）</li>
+          <li>家庭 / 团体出行结构</li>
+          <li>历史取消率与平均客单价</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:24px; font-size:13px; color:#64748b;">
+      数据治理：缺失值分层填补 · 异常值3σ截断 · 样本不平衡SMOTE过采样 · 时间序列8:2划分
+    </p>
+  </div>
+</section>
+
+<!-- 模型对比 -->
+<section>
+  <div class="container">
+    <div class="section-label">MODELING</div>
+    <h2 class="section-title">模型对比与选型</h2>
+    <p class="section-desc">从线性基准到Stacking集成的层层递进建模路径</p>
+    <div class="chart-box">
+      <div id="modelChart"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 核心成果 -->
+<section>
+  <div class="container">
+    <div class="section-label">KEY RESULTS</div>
+    <h2 class="section-title">核心成果指标</h2>
+    <p class="section-desc">技术指标与业务价值的双重验证</p>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="result-num">0.8603</div>
+        <div class="result-label">Stacking模型测试集AUC<br>区分度显著优于单一模型</div>
+      </div>
+      <div class="result-item">
+        <div class="result-num">1.8×</div>
+        <div class="result-label">Top 10%高风险订单 Lift<br>识别效率为随机猜测的1.8倍</div>
+      </div>
+      <div class="result-item">
+        <div class="result-num">+5.2%</div>
+        <div class="result-label">差异化推荐策略下<br>预计每单净收益提升</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 策略设计 -->
+<section>
+  <div class="container">
+    <div class="section-label">STRATEGY</div>
+    <h2 class="section-title">用户分层与精准运营策略</h2>
+    <p class="section-desc">From Model to Action — 基于预测概率的用户分层与差异化运营方案</p>
+
+    <div class="seg-grid">
+      <!-- 高风险 -->
+      <div class="seg-card seg-high">
+        <div class="seg-badge">高风险层</div>
+        <div class="seg-name">主动干预型</div>
+        <div class="seg-threshold">预测概率 P > 0.6</div>
+        <div class="seg-row">
+          <div class="seg-row-label">人群特征</div>
+          <div class="seg-row-content">提前预订时间长、决策犹豫指数高、历史取消率高、节假日出行占比大</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">运营策略</div>
+          <div class="seg-row-content">支付成功页主动弹窗推荐"无忧退"增值服务，搭配限时优惠话术，强调"免费取消、无忧出行"</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">触达方式</div>
+          <div class="seg-row-content">支付页弹窗 + 订单页顶部提示 + 出行前3天短信触达</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">预期目标</div>
+          <div class="seg-row-content">无忧退渗透率提升，将不确定的取消损失转化为确定的增值服务收入</div>
+        </div>
+      </div>
+
+      <!-- 中风险 -->
+      <div class="seg-card seg-mid">
+        <div class="seg-badge">中风险层</div>
+        <div class="seg-name">温和引导型</div>
+        <div class="seg-threshold">预测概率 0.3 < P ≤ 0.6</div>
+        <div class="seg-row">
+          <div class="seg-row-label">人群特征</div>
+          <div class="seg-row-content">价格敏感度中等、出行目的模糊、首次预订该目的地</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">运营策略</div>
+          <div class="seg-row-content">订单页提供"无忧退"选项入口，但不主动弹窗打扰，用户可按需选购</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">触达方式</div>
+          <div class="seg-row-content">订单详情页折叠式选项 + 出行前1天消息推送提醒</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">预期目标</div>
+          <div class="seg-row-content">在不打扰用户的前提下，提升增值服务的自然转化率</div>
+        </div>
+      </div>
+
+      <!-- 低风险 -->
+      <div class="seg-card seg-low">
+        <div class="seg-badge">低风险层</div>
+        <div class="seg-name">路径优化型</div>
+        <div class="seg-threshold">预测概率 P ≤ 0.3</div>
+        <div class="seg-row">
+          <div class="seg-row-label">人群特征</div>
+          <div class="seg-row-content">短期预订、商务出行占比高、历史取消率低、决策路径短</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">运营策略</div>
+          <div class="seg-row-content">不展示"无忧退"推荐，保持简洁支付路径，减少不必要的决策干扰</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">触达方式</div>
+          <div class="seg-row-content">无主动触达，保持产品路径简洁流畅</div>
+        </div>
+        <div class="seg-row">
+          <div class="seg-row-label">预期目标</div>
+          <div class="seg-row-content">提升支付转化率，避免过度营销导致用户反感和流失</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A/B 实验设计 -->
+    <div class="ab-section">
+      <div class="ab-title">A/B 实验设计方案</div>
+      <div class="ab-grid">
+        <div class="ab-item">
+          <div class="ab-item-label">实验假设</div>
+          <div class="ab-item-value">基于预测模型的差异化"无忧退"推荐策略，相比无差别弹窗推荐，可提升每单净收益 ≥ 5%</div>
+        </div>
+        <div class="ab-item">
+          <div class="ab-item-label">分组方案</div>
+          <div class="ab-item-value">实验组（分层策略）50% vs 对照组（无差别弹窗）50%，按用户ID随机分流</div>
+        </div>
+        <div class="ab-item">
+          <div class="ab-item-label">核心观测指标</div>
+          <div class="ab-item-value">每单净收益（主指标）、无忧退渗透率、支付转化率、退改客诉率</div>
+        </div>
+        <div class="ab-item">
+          <div class="ab-item-label">观测周期</div>
+          <div class="ab-item-value">2个完整周末周期（含节假日），覆盖不同出行场景的波动</div>
+        </div>
+        <div class="ab-item">
+          <div class="ab-item-label">成功判定标准</div>
+          <div class="ab-item-value">实验组每单净收益提升 ≥ 5%，且支付转化率下降 ≤ 1%</div>
+        </div>
+        <div class="ab-item">
+          <div class="ab-item-label">模型迭代机制</div>
+          <div class="ab-item-value">季度全量重训练 + 异常触发式微调，应对季节性特征分布漂移</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 技术栈 -->
+<section>
+  <div class="container">
+    <div class="section-label">TECH STACK</div>
+    <h2 class="section-title">技术栈</h2>
+    <div class="tech-tags">
+      <span class="tech-tag">Python</span>
+      <span class="tech-tag">scikit-learn</span>
+      <span class="tech-tag">LightGBM</span>
+      <span class="tech-tag">Stacking Ensemble</span>
+      <span class="tech-tag">SMOTE</span>
+      <span class="tech-tag">CRISP-DM</span>
+      <span class="tech-tag">A/B Testing</span>
+      <span class="tech-tag">Feature Engineering</span>
+      <span class="tech-tag">User Segmentation</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    谢宇彤 · 数据分析作品集 · 基于Kaggle Hotel Booking Demand数据集完成
+  </div>
+</footer>
+
+<script>
+  var chart = echarts.init(document.getElementById('modelChart'));
+  var option = {
+    title: { text: '模型性能对比（测试集）', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['AUC', 'F1-Score'], bottom: 0 },
+    grid: { left: '3%', right: '4%', bottom: '12%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: ['Logistic回归', '随机森林', 'LightGBM', 'Stacking集成'],
+      axisLabel: { fontSize: 12 }
+    },
+    yAxis: {
+      type: 'value',
+      min: 0.7,
+      max: 0.9,
+      axisLabel: { fontSize: 11 }
+    },
+    series: [
+      {
+        name: 'AUC',
+        type: 'bar',
+        data: [0.782, 0.835, 0.851, 0.8603],
+        itemStyle: { color: '#1e40af' },
+        label: { show: true, position: 'top', fontSize: 11, formatter: '{c}' }
+      },
+      {
+        name: 'F1-Score',
+        type: 'bar',
+        data: [0.712, 0.768, 0.795, 0.812],
+        itemStyle: { color: '#93c5fd' },
+        label: { show: true, position: 'top', fontSize: 11, formatter: '{c}' }
+      }
+    ]
+  };
+  chart.setOption(option);
+  window.addEventListener('resize', function() { chart.resize(); });
+</script>
+
+</body>
+</html>
